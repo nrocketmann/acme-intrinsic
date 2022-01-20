@@ -27,7 +27,8 @@ class ProbabilityPredictor(snt.Module):
             log_std = self.activation(self.std_layer(shared_rep))
             distro = tfp.distributions.Normal(loc=mean,std = tf.exp(log_std))
         else:
-            distro = tfp.distributions.Categorical(logits=mean)
+            distro = tfp.distributions.OneHotCategorical(logits=mean)
+            variable = tf.cast(variable, tf.int32)
         return distro.log_prob(variable)
 
 
@@ -47,7 +48,7 @@ class ConditionalProductNetwork(snt.Module):
     def __call__(self, action_sequence, givens):
         #action sequence has shape batch x timesteps x dims
         #givens has shape batch x dims
-        action_sequence = tf.cast(action_sequence,tf.float32)
+        action_sequence = tf.cast(action_sequence[:,:-1],tf.float32)
         givens = tf.cast(givens,tf.float32)
         input_shape = tf.shape(action_sequence)
         batch_size = input_shape[0]
@@ -56,6 +57,7 @@ class ConditionalProductNetwork(snt.Module):
 
         #now concatenate all givens
         givens = tf.concat([tf.tile(tf.expand_dims(givens,1),[1,timesteps, 1]),given_actions],axis=-1)
+
         log_probs = self.probnet(action_sequence, givens)
         return tf.reduce_sum(log_probs, axis=1) #sum over all timesteps to get product of probabilities
 

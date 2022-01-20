@@ -367,24 +367,27 @@ class DQNEmpowermentLearner(acme.Learner, tf2_savers.TFSaveable):
     transitions: types.Transition = inputs.data
     keys, probs = inputs.info[:2]
 
-    print(transitions.observation.shape)
-    print(transitions.next_observation.shape)
-    print(transitions.action.shape)
+
+    if (transitions.action.shape.rank==2):
+      action = tf.one_hot(transitions.action,self._qnetwork.output_dims) #TODO: make this not fail in continuous 1D case
+    else:
+      action = transitions.action
+
 
 
     with tf.GradientTape(persistent=True) as tape:
       q_tm1 = self._Qnetwork(transitions.observation[:,0])
-      q_t_value = self._target_Qnetwork(transitions.next_observation[:,0])
-      q_t_selector = self._Qnetwork(transitions.next_observation[:,0])
+      q_t_value = self._target_Qnetwork(transitions.observation[:,1]) #next observation
+      q_t_selector = self._Qnetwork(transitions.observation[:,1]) #next observation
 
-      feature_s = self._feat_network(tf.expand_dims(transitions.observation[:,0]))
-      feature_sprime = self._feat_network(tf.expand_dims(transitions.next_observation[:,-1]))
+      feature_s = self._feat_network(transitions.observation[:,0])
+      feature_sprime = self._feat_network(transitions.observation[:,-1])
       s_sprime = tf.concat([feature_s, feature_sprime],axis=-1)
 
-      q_preds = self._qnetwork(transitions.action, s_sprime)
-      r_preds, phi_val = self._rnetwork(transitions.action, feature_s)
+      q_preds = self._qnetwork(action, s_sprime)
+      r_preds, phi_val = self._rnetwork(action, feature_s)
 
-      intrinsic_reward = phi_val * 1/self.beta
+      intrinsic_reward = tf.squeeze(phi_val * 1/self.beta)
 
       q_loss = tf.reduce_mean(q_preds)
       r_loss = tf.reduce_mean(tf.math.squared_difference(self.beta * q_preds, r_preds))
@@ -393,11 +396,12 @@ class DQNEmpowermentLearner(acme.Learner, tf2_savers.TFSaveable):
       # The rewards and discounts have to have the same type as network values.
       r_t = tf.cast(intrinsic_reward, q_tm1.dtype)
       r_t = tf.clip_by_value(r_t, -1., 1.)
-      d_t = tf.cast(transitions.discount, q_tm1.dtype) * tf.cast(
+      d_t = tf.cast(transitions.discount[:,0], q_tm1.dtype) * tf.cast(
           self._discount, q_tm1.dtype)
 
+      print(tf.squeeze(transitions.action[:,0]).shape)
       # Compute the loss.
-      _, extra = trfl.double_qlearning(q_tm1, transitions.action, r_t, d_t,
+      _, extra = trfl.double_qlearning(q_tm1, tf.squeeze(transitions.action[:,0]), r_t, d_t,
                                        q_t_value, q_t_selector)
       loss = losses.huber(extra.td_error, self._huber_loss_parameter)
 
