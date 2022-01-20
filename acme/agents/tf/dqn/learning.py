@@ -388,6 +388,7 @@ class DQNEmpowermentLearner(acme.Learner, tf2_savers.TFSaveable):
       r_preds, phi_val = self._rnetwork(action, feature_s)
 
       intrinsic_reward = tf.squeeze(phi_val * 1/self.beta)
+      tf.print(intrinsic_reward)
 
       q_loss = tf.reduce_mean(q_preds)
       r_loss = tf.reduce_mean(tf.math.squared_difference(self.beta * q_preds, r_preds))
@@ -399,7 +400,6 @@ class DQNEmpowermentLearner(acme.Learner, tf2_savers.TFSaveable):
       d_t = tf.cast(transitions.discount[:,0], q_tm1.dtype) * tf.cast(
           self._discount, q_tm1.dtype)
 
-      print(tf.squeeze(transitions.action[:,0]).shape)
       # Compute the loss.
       _, extra = trfl.double_qlearning(q_tm1, tf.squeeze(transitions.action[:,0]), r_t, d_t,
                                        q_t_value, q_t_selector)

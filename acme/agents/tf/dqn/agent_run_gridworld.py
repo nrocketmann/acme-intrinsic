@@ -41,7 +41,7 @@ def make_environment(
   # Make sure the environment obeys the dm_env.Environment interface.
   environment = wrappers.GymWrapper(environment)
   # Clip the action returned by the agent to the environment spec.
-  environment = wrappers.CanonicalSpecWrapper(environment, clip=True)
+  environment = wrappers.CanonicalSpecWrapper(environment,clip=True)
   environment = wrappers.SinglePrecisionWrapper(environment)
 
   return environment
@@ -78,7 +78,6 @@ def run(_):
   environment = make_environment(env)
 
   spec = specs.make_environment_spec(environment)
-    # Create a fake environment to test with.
 
     # Construct the agent.
   agent = dqn.DQNEmpowerment(

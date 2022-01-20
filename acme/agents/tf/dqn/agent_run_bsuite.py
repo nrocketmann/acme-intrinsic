@@ -52,6 +52,7 @@ def main(_):
   flags.DEFINE_string('bsuite_id', 'deep_sea/0', 'Bsuite id.')
   flags.DEFINE_string('results_dir', '~/tmp/bsuite', 'CSV results directory.')
   flags.DEFINE_boolean('overwrite', True, 'Whether to overwrite csv results.')
+  flags.DEFINE_integer('episodes',100,'Number of episodes to write')
   FLAGS = flags.FLAGS
 
   raw_environment = bsuite.load_and_record_to_csv(
@@ -78,7 +79,7 @@ def main(_):
     # Try running the environment loop. We have no assertions here because all
     # we care about is that the agent runs without raising any errors.
   loop = acme.EnvironmentLoop(environment, agent)
-  loop.run(num_episodes=2)
+  loop.run(num_episodes=FLAGS.episodes)
 
 
 if __name__ == '__main__':
